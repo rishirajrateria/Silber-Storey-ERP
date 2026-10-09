@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --accent: 31 58 95; }
+html { -webkit-font-smoothing: antialiased; }
+body {
+  @apply text-ink min-h-screen font-sans text-[14px] leading-6;
+  background-color: #eef2f8;
+  background-image:
+    radial-gradient(900px 600px at 10% -10%, rgba(var(--accent) / 0.14), transparent 60%),
+    radial-gradient(800px 500px at 100% 0%, rgba(140, 170, 230, 0.22), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(190, 200, 240, 0.25), transparent 60%);
+  background-attachment: fixed;
+}
+@layer components {
+  .glass { @apply rounded-2xl border border-white/70 bg-white/55 shadow-glass backdrop-blur-xl; }
+  .glass-strong { @apply rounded-2xl border border-white/80 bg-white/75 shadow-glass backdrop-blur-2xl; }
+  .glass-soft { @apply rounded-xl border border-white/60 bg-white/40 backdrop-blur-md; }
+  .field { @apply w-full rounded-xl border border-white/80 bg-white/70 px-3 py-2 text-[14px] text-ink outline-none transition placeholder:text-mute/70 focus:border-accent/40 focus:bg-white focus:ring-4 focus:ring-accent/10 disabled:opacity-60; }
+  .btn { @apply inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-[13.5px] font-medium transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-accent text-white shadow-soft hover:bg-accent/90; }
+  .btn-ghost { @apply btn border border-white/80 bg-white/50 text-ink hover:bg-white/80; }
+  .btn-danger { @apply btn bg-red-600/90 text-white hover:bg-red-600; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[12px] font-medium leading-5; }
+  .nav-item { @apply flex items-center gap-3 rounded-xl px-3 py-2 text-[13.5px] text-ink/80 transition hover:bg-white/60; }
+  .nav-item.active { @apply bg-white/80 text-accent shadow-soft; }
+  .label { @apply mb-1 block text-[12px] font-medium uppercase tracking-wide text-mute; }
+  .th { @apply px-3 py-2 text-left text-[12px] font-medium uppercase tracking-wide text-mute; }
+  .td { @apply px-3 py-2.5 align-middle; }
+}
+::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: rgba(31,58,95,.18); border-radius: 8px; }
