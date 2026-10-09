@@ -1,0 +1,9 @@
+node_modules
+dist
+.next
+.env
+.storage
+coverage
+*.log
+.turbo
+apps/web/public/sw.js.map

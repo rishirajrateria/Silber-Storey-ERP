@@ -1,0 +1,732 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  sales
+  engineer
+  finance
+  design_head
+  junior_designer
+}
+enum Dashboard {
+  sales
+  engineer
+  finance
+  design_head
+  junior_designer
+  global
+}
+enum PermLevel {
+  none
+  read
+  full
+}
+enum StatusDashboard {
+  sales
+  engineer
+}
+enum Priority {
+  low
+  med
+  high
+}
+enum LeadStage {
+  lead_received
+  qualified_by_sales
+  transferred_to_engineer
+  first_contact
+  meeting_scheduled
+  meeting_done
+  quote_v1
+  admin_approved
+  quote_sent
+  client_accepted_final
+  pushed_to_finance
+  invoice_sent
+  advance_paid
+  pushed_to_design
+  internal_meeting_done
+  second_client_meeting_done
+  handover_accepted
+}
+enum MeetingKind {
+  client
+  internal
+  second_client
+}
+enum MeetingType {
+  meet
+  office
+  site
+}
+enum AdminResponse {
+  none
+  accepted
+  declined
+}
+enum AdminDecision {
+  proceed
+  reschedule
+}
+enum MeetingStatus {
+  scheduled
+  rescheduled
+  cancelled
+  in_progress
+  completed
+  no_show
+}
+enum RecordingSource {
+  mic
+  bot
+}
+enum RecordingStatus {
+  uploading
+  ready
+  failed
+}
+enum ApprovalType {
+  duplicate_override
+  quote_version
+  milestone_pct_change
+  credit_note
+  new_user
+  meeting_invite
+}
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+enum QuoteApprovalStatus {
+  not_required
+  pending
+  approved
+  rejected
+}
+enum MilestoneStatus {
+  pending
+  invoiced
+  paid
+}
+enum InvoiceStatus {
+  draft
+  sent
+  partially_paid
+  paid
+  cancelled
+}
+enum PaymentMode {
+  upi
+  neft
+  cheque
+  cash
+  other
+}
+enum Channel {
+  email
+  whatsapp
+  sms
+  manual_call
+  manual_whatsapp
+  manual_email
+}
+enum Direction {
+  out
+  manual
+}
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+  logged
+}
+enum TemplateChannel {
+  email
+  whatsapp
+  sms
+  pdf
+}
+enum ProviderStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+enum ReportFrequency {
+  daily
+  weekly
+  monthly
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  name                  String
+  role                  Role
+  active                Boolean   @default(true)
+  googleRefreshTokenEnc String?
+  calendarId            String?
+  lastSeenAt            DateTime?
+  lastLat               Float?
+  lastLng               Float?
+  lastLocAt             DateTime?
+  locationConsentAt     DateTime?
+  createdAt             DateTime  @default(now())
+  permissions           AdminPermission[]
+}
+
+model AdminPermission {
+  id          String    @id @default(cuid())
+  adminUserId String
+  dashboard   Dashboard
+  level       PermLevel @default(none)
+  canApprove  Boolean   @default(false)
+  admin       User      @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  @@unique([adminUserId, dashboard])
+}
+
+model Client {
+  id           String    @id @default(cuid())
+  phone        String    @unique
+  name         String?
+  email        String?
+  ethnicity    String?
+  gender       String?
+  locationArea String?
+  exactAddress String?
+  addressLat   Float?
+  addressLng   Float?
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+  leads        Lead[]
+}
+
+model Lead {
+  id                      String     @id @default(cuid())
+  clientId                String
+  previousLeadId          String?
+  source                  String
+  requirement             String?
+  leadDate                DateTime   @default(now())
+  salesStatusId           String
+  engineerStatusId        String?
+  genuine                 Boolean    @default(false)
+  budget                  Float?
+  salesUserId             String
+  engineerUserId          String?
+  financeUserId           String?
+  designHeadUserId        String?
+  juniorUserId            String?
+  stage                   LeadStage  @default(lead_received)
+  transferredToEngineerAt DateTime?
+  pushedToFinanceAt       DateTime?
+  pushedToDesignAt        DateTime?
+  handoverCompletedAt     DateTime?
+  lostReason              String?
+  lostByRole              Role?
+  archived                Boolean    @default(false)
+  projectClosedAt         DateTime?
+  recordingsKept          Boolean?
+  aiProfile               String?
+  createdAt               DateTime   @default(now())
+  client                  Client     @relation(fields: [clientId], references: [id])
+  salesStatus             LeadStatus @relation("salesStatus", fields: [salesStatusId], references: [id])
+  engineerStatus          LeadStatus? @relation("engineerStatus", fields: [engineerStatusId], references: [id])
+  billing                 BillingDetails?
+  statusHistory           StatusHistory[]
+  followUps               FollowUp[]
+  meetings                Meeting[]
+  notes                   Note[]
+  files                   LeadFile[]
+  quote                   Quote?
+  pipeline                PaymentPipeline?
+  invoices                Invoice[]
+  messages                Message[]
+  handover                Handover?
+  delays                  Delay[]
+  approvals               Approval[]
+  @@index([salesUserId])
+  @@index([engineerUserId])
+  @@index([stage])
+}
+
+model BillingDetails {
+  leadId         String @id
+  legalName      String
+  billingAddress String
+  state          String
+  gstin          String?
+  pan            String?
+  siteAddress    String
+  contactName    String
+  contactPhone   String
+  contactEmail   String
+  lead           Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model LeadStatus {
+  id               String          @id @default(cuid())
+  dashboard        StatusDashboard
+  key              String
+  label            String
+  order            Int             @default(0)
+  requiresFollowUp Boolean         @default(false)
+  isFinal          Boolean         @default(false)
+  isSystem         Boolean         @default(false)
+  active           Boolean         @default(true)
+  salesLeads       Lead[]          @relation("salesStatus")
+  engineerLeads    Lead[]          @relation("engineerStatus")
+  @@unique([dashboard, key])
+}
+
+model StatusHistory {
+  id           String    @id @default(cuid())
+  leadId       String
+  dashboard    String
+  fromStatusId String?
+  toStatusId   String
+  reason       String?
+  followUpAt   DateTime?
+  priority     Priority?
+  byUserId     String
+  at           DateTime  @default(now())
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  @@index([leadId, at])
+}
+
+model FollowUp {
+  id              String    @id @default(cuid())
+  leadId          String
+  userId          String
+  dueAt           DateTime
+  priority        Priority
+  calendarEventId String?
+  done            Boolean   @default(false)
+  doneAt          DateTime?
+  lead            Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  @@index([userId, dueAt])
+}
+
+model LeadSource {
+  id     String  @id @default(cuid())
+  label  String  @unique
+  order  Int     @default(0)
+  active Boolean @default(true)
+}
+
+model Meeting {
+  id                String        @id @default(cuid())
+  leadId            String
+  kind              MeetingKind
+  type              MeetingType
+  startAt           DateTime
+  endAt             DateTime
+  engineerUserId    String
+  attendeeUserIds   String[]
+  adminInvited      Boolean       @default(false)
+  adminResponse     AdminResponse @default(none)
+  adminRemark       String?
+  adminDecision     AdminDecision?
+  meetLink          String?
+  calendarEventIds  Json          @default("{}")
+  inviteToken       String        @unique
+  consentToken      String        @unique
+  inviteAcceptedAt  DateTime?
+  consentAcceptedAt DateTime?
+  status            MeetingStatus @default(scheduled)
+  travelStartedAt   DateTime?
+  checkinAt         DateTime?
+  checkinLat        Float?
+  checkinLng        Float?
+  checkinDistanceM  Float?
+  durationSec       Int?
+  noShowMarkedBy    String?
+  createdAt         DateTime      @default(now())
+  lead              Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  recordings        Recording[]
+  transcript        Transcript?
+  mom               MinutesOfMeeting?
+  notes             Note[]
+  tracks            LocationTrack[]
+  @@index([leadId])
+  @@index([engineerUserId, startAt])
+}
+
+model LocationTrack {
+  id        String   @id @default(cuid())
+  userId    String
+  meetingId String?
+  lat       Float
+  lng       Float
+  at        DateTime @default(now())
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  @@index([userId, at])
+}
+
+model Recording {
+  id          String          @id @default(cuid())
+  meetingId   String
+  storageKey  String
+  source      RecordingSource
+  durationSec Int             @default(0)
+  bytes       Int             @default(0)
+  checksum    String?
+  status      RecordingStatus @default(uploading)
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  meeting     Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+model Transcript {
+  id        String   @id @default(cuid())
+  meetingId String   @unique
+  text      String
+  model     String
+  createdAt DateTime @default(now())
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+}
+
+model MinutesOfMeeting {
+  id                String      @id @default(cuid())
+  meetingId         String      @unique
+  text              String
+  model             String
+  emailedToClientAt DateTime?
+  token             String      @unique
+  createdAt         DateTime    @default(now())
+  meeting           Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  objections        Objection[]
+}
+
+model Objection {
+  id     String           @id @default(cuid())
+  momId  String
+  remark String
+  at     DateTime         @default(now())
+  ip     String
+  mom    MinutesOfMeeting @relation(fields: [momId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  leadId    String
+  meetingId String?
+  text      String
+  byUserId  String
+  at        DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+}
+
+model LeadFile {
+  id         String   @id @default(cuid())
+  leadId     String
+  name       String
+  storageKey String
+  mime       String
+  bytes      Int
+  byUserId   String
+  at         DateTime @default(now())
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Quote {
+  id               String         @id @default(cuid())
+  leadId           String         @unique
+  currentVersionNo Int            @default(0)
+  finalVersionId   String?
+  lead             Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  versions         QuoteVersion[]
+}
+
+model QuoteVersion {
+  id                  String              @id @default(cuid())
+  quoteId             String
+  versionNo           Int
+  data                Json
+  subtotal            Float
+  discount            Float
+  gstPct              Float
+  gstAmount           Float
+  total               Float
+  paymentSchedule     Json
+  validityDays        Int
+  approvalRequired    Boolean
+  approvalStatus      QuoteApprovalStatus @default(not_required)
+  approvedByUserId    String?
+  approvedAt          DateTime?
+  approvalRemark      String?
+  isFinal             Boolean             @default(false)
+  sentToClientAt      DateTime?
+  clientToken         String              @unique
+  clientAcceptedAt    DateTime?
+  clientChangeRequest String?
+  text                String
+  pdfKey              String?
+  diffFromPrevious    Json                @default("{}")
+  createdByUserId     String
+  createdAt           DateTime            @default(now())
+  quote               Quote               @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  pipelines           PaymentPipeline[]
+  @@unique([quoteId, versionNo])
+}
+
+model PaymentPipeline {
+  id             String       @id @default(cuid())
+  leadId         String       @unique
+  quoteVersionId String
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  quoteVersion   QuoteVersion @relation(fields: [quoteVersionId], references: [id])
+  milestones     Milestone[]
+}
+
+model Milestone {
+  id         String          @id @default(cuid())
+  pipelineId String
+  order      Int
+  name       String
+  pct        Float
+  amount     Float
+  dueDate    DateTime?
+  invoiceId  String?         @unique
+  status     MilestoneStatus @default(pending)
+  pipeline   PaymentPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  invoice    Invoice?        @relation(fields: [invoiceId], references: [id])
+}
+
+model Invoice {
+  id                 String        @id @default(cuid())
+  leadId             String
+  milestoneId        String
+  series             String
+  number             Int?
+  fullNumber         String?       @unique
+  type               String        @default("tax")
+  issueDate          DateTime?
+  lines              Json
+  placeOfSupplyState String
+  cgst               Float         @default(0)
+  sgst               Float         @default(0)
+  igst               Float         @default(0)
+  gstPct             Float
+  hsnSac             String
+  subtotal           Float
+  total              Float
+  text               String
+  pdfKey             String?
+  clientToken        String        @unique
+  sentAt             DateTime?
+  status             InvoiceStatus @default(draft)
+  createdAt          DateTime      @default(now())
+  lead               Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  milestone          Milestone?
+  payments           Payment[]
+  creditNotes        CreditNote[]
+}
+
+model Payment {
+  id        String      @id @default(cuid())
+  invoiceId String
+  amount    Float
+  mode      PaymentMode
+  reference String?
+  paidOn    DateTime
+  byUserId  String
+  at        DateTime    @default(now())
+  invoice   Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  receipt   Receipt?
+}
+
+model Receipt {
+  id          String   @id @default(cuid())
+  paymentId   String   @unique
+  series      String
+  number      Int
+  fullNumber  String   @unique
+  text        String
+  pdfKey      String?
+  clientToken String   @unique
+  sentAt      DateTime?
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model CreditNote {
+  id         String  @id @default(cuid())
+  invoiceId  String
+  amount     Float
+  reason     String
+  approvalId String  @unique
+  series     String
+  number     Int
+  pdfKey     String?
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id                String         @id @default(cuid())
+  type              ApprovalType
+  entityType        String
+  entityId          String
+  leadId            String?
+  requestedByUserId String
+  payload           Json
+  status            ApprovalStatus @default(pending)
+  decidedByUserId   String?
+  decidedAt         DateTime?
+  remark            String?
+  createdAt         DateTime       @default(now())
+  lead              Lead?          @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  @@index([status, type])
+}
+
+model Message {
+  id                String        @id @default(cuid())
+  leadId            String?
+  clientId          String?
+  channel           Channel
+  direction         Direction     @default(out)
+  templateKey       String?
+  to                String
+  subject           String?
+  body              String
+  providerMessageId String?
+  status            MessageStatus @default(queued)
+  error             String?
+  byUserId          String?
+  queuedAt          DateTime      @default(now())
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  attachmentKey     String?
+  holdUntil         DateTime?
+  lead              Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  @@index([leadId, queuedAt])
+}
+
+model Template {
+  id             String          @id @default(cuid())
+  channel        TemplateChannel
+  key            String
+  name           String
+  body           String
+  variables      String[]
+  providerStatus ProviderStatus?
+  active         Boolean         @default(true)
+  @@unique([channel, key])
+}
+
+model Handover {
+  id                   String    @id @default(cuid())
+  leadId               String    @unique
+  designHeadUserId     String
+  juniorUserId         String?
+  internalMeetingId    String?
+  secondMeetingId      String?
+  acceptedByEngineerAt DateTime?
+  acceptedByHeadAt     DateTime?
+  acceptedByJuniorAt   DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  lead                 Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Delay {
+  id             String    @id @default(cuid())
+  leadId         String
+  dashboard      String
+  ruleKey        String
+  thresholdHours Int
+  breachedAt     DateTime  @default(now())
+  resolvedAt     DateTime?
+  userId         String
+  lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  @@index([leadId, ruleKey])
+}
+
+model DelayRule {
+  id             String  @id @default(cuid())
+  dashboard      String
+  ruleKey        String
+  thresholdHours Int
+  active         Boolean @default(true)
+  @@unique([dashboard, ruleKey])
+}
+
+model NotificationRule {
+  id               String  @id @default(cuid())
+  dashboard        String
+  eventKey         String
+  inApp            Boolean @default(true)
+  email            Boolean @default(false)
+  whatsapp         Boolean @default(false)
+  sms              Boolean @default(false)
+  timingOffsetsMin Json    @default("[]")
+  @@unique([dashboard, eventKey])
+}
+
+model Notification {
+  id       String    @id @default(cuid())
+  userId   String
+  eventKey String
+  title    String
+  body     String
+  link     String?
+  readAt   DateTime?
+  at       DateTime  @default(now())
+  @@index([userId, at])
+}
+
+model Setting {
+  key   String @id
+  value Json
+}
+
+model ReportSchedule {
+  id         String          @id @default(cuid())
+  dashboard  String
+  frequency  ReportFrequency
+  recipients String[]
+  reportKeys String[]
+  active     Boolean         @default(true)
+  lastRunAt  DateTime?
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorRole   String?
+  action      String
+  entityType  String?
+  entityId    String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+  at          DateTime @default(now())
+  @@index([entityType, entityId])
+  @@index([actorUserId, at])
+}
+
+model DocumentChunk {
+  id         String  @id @default(cuid())
+  leadId     String?
+  clientId   String?
+  docType    String
+  docId      String
+  chunkIndex Int
+  text       String
+  embedding  Float[]
+  meta       Json    @default("{}")
+  @@index([leadId])
+  @@index([docType, docId])
+}
