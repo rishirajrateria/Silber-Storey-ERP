@@ -17,6 +17,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, [qc, setOnline]);
   return <QueryClientProvider client={qc}>{children}
-    {toast && <div className={cn('fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-xl px-4 py-2 text-[13px] text-white shadow-lg sm:bottom-6', toast.kind === 'err' ? 'bg-red-600' : 'bg-ink')}>{toast.text}</div>}
+    {toast && <div className={cn('fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 rounded-xl px-4 py-2 text-[13px] text-black shadow-lg sm:bottom-6', toast.kind === 'err' ? 'bg-red-400' : 'bg-white')}>{toast.text}</div>}
   </QueryClientProvider>;
 }

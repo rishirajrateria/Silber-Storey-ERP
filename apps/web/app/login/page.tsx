@@ -14,7 +14,7 @@ function LoginInner() {
   const dev = async () => { setBusy(true); setErr(''); try { const u = await post('/auth/dev-login', { email }); r.replace(ROLE_HOME[u.data.role as keyof typeof ROLE_HOME]); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
   return <main className="flex min-h-screen items-center justify-center p-4">
     <Glass strong className="w-full max-w-sm">
-      <div className="mb-6"><div className="mb-3 h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[#8b78ff] shadow-soft" /><h1 className="text-[20px] font-semibold tracking-tight">Sign in</h1><p className="text-[13px] text-mute">Lead management & consultation</p></div>
+      <div className="mb-6"><div className="mb-3 h-10 w-10 rounded-xl bg-white" /><h1 className="text-[20px] font-semibold tracking-tight">Sign in</h1><p className="text-[13px] text-mute">Lead management & consultation</p></div>
       <a href="/api/v1/auth/google/start" className="btn-primary w-full">Continue with Google</a>
       {users.length > 0 && <div className="mt-6 border-t border-white/10 pt-4">
         <div className="mb-2 text-[12px] font-medium uppercase tracking-wide text-mute">Mock mode · pick a user</div>

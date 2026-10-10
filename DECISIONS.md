@@ -17,7 +17,7 @@
 - **Report schedules** run from an hourly tick and respect `lastRunAt` + frequency.
 - **Immutability** of Transcript/MoM is enforced by a Postgres trigger (`20261009170000_immutable_text`).
 - **Migration ordering**: migration folders are timestamped; the trigger migration is dated after `init`.
-- **Theme**: single committed dark glass theme (user request). Branding primary colour is applied as the accent only when bright enough to read on the dark surface (relative luminance ≥ 0.45); otherwise the default cyan stays.
+- **Theme**: single committed jet-black glass theme (user request): pure #000 base, neutral white glass, white accent, semantic colours only for status chips. `Setting.branding.colors.primary` is kept for PDFs/emails and is not applied to the app UI.
 - **Second client meeting**: requires a Junior to be assigned (Design Head + Junior are auto-attendees and get calendar entries); explicit per-person consent is not a separate step.
 - **Travel time** in My Day is estimated from straight-line distance at 22 km/h plus 5 min in mock mode; the real Maps adapter can swap in Distance Matrix.
 - **Invoice cancellation** is its own approval type (`invoice_cancellation`); only invoices without payments can be cancelled, otherwise a credit note is used.

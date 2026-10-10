@@ -33,7 +33,7 @@ export function LeadDetail({ id }: { id: string }) {
   if (lead.isLoading) return <Spinner />;
   if (lead.error || !lead.data) return <Glass><Empty text="Lead not found or not accessible" /></Glass>;
   const l = lead.data;
-  if (l.headerOnly) return <Glass><div className="flex items-center gap-3"><h1 className="text-[18px] font-semibold">{l.clientName}</h1><span className="chip border-accent/20 bg-accent/[.12] text-accent">{l.stage.replace(/_/g, ' ')}</span></div><p className="mt-2 text-[13px] text-mute">Handover complete — this lead is now with the design team.</p></Glass>;
+  if (l.headerOnly) return <Glass><div className="flex items-center gap-3"><h1 className="text-[18px] font-semibold">{l.clientName}</h1><span className="chip border-white/15 bg-white/10 text-white">{l.stage.replace(/_/g, ' ')}</span></div><p className="mt-2 text-[13px] text-mute">Handover complete — this lead is now with the design team.</p></Glass>;
   return <div>
     <LeadHeader lead={l} onChanged={refresh} />
     <Tabs value={tab} onChange={(t) => r.replace(`?tab=${t}`)} tabs={tabs}>
@@ -58,7 +58,7 @@ function DesignPackage({ leadId }: { leadId: string }) {
   const p = q.data; if (!p) return <Glass><Empty text="No package" /></Glass>;
   const final = p.quote?.versions?.[0];
   return <div className="grid gap-4 lg:grid-cols-2">
-    <Glass><div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-mute">Client & requirement</div><div className="grid grid-cols-2 gap-3"><KV k="Name" v={p.client?.name} /><KV k="Area" v={p.client?.locationArea} /><KV k="Address" v={p.client?.exactAddress} /><KV k="Budget" v={p.budget} /><div className="col-span-2"><KV k="Requirement" v={p.requirement} /></div></div>{p.aiProfile && <div className="mt-3 whitespace-pre-wrap rounded-xl bg-accent/[.06] p-3 text-[13px]">{p.aiProfile}</div>}</Glass>
+    <Glass><div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-mute">Client & requirement</div><div className="grid grid-cols-2 gap-3"><KV k="Name" v={p.client?.name} /><KV k="Area" v={p.client?.locationArea} /><KV k="Address" v={p.client?.exactAddress} /><KV k="Budget" v={p.budget} /><div className="col-span-2"><KV k="Requirement" v={p.requirement} /></div></div>{p.aiProfile && <div className="mt-3 whitespace-pre-wrap rounded-xl bg-white/[.06] p-3 text-[13px]">{p.aiProfile}</div>}</Glass>
     <Glass><div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-mute">Final quote</div>{final ? <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap font-sans text-[12.5px]">{final.text}</pre> : <Empty text="No final quote" />}</Glass>
     <Glass className="lg:col-span-2"><div className="mb-3 text-[12px] font-medium uppercase tracking-wide text-mute">Minutes of meetings</div>{!p.meetings?.some((m: any) => m.mom) ? <Empty text="No minutes yet" /> : p.meetings.filter((m: any) => m.mom).map((m: any) => <details key={m.id} className="mb-2 rounded-xl border border-white/10 bg-white/5 p-3"><summary className="cursor-pointer text-[13.5px] font-medium">{m.kind.replace('_', ' ')} · {dt(m.startAt)}</summary><pre className="mt-2 whitespace-pre-wrap font-sans text-[13px]">{m.mom.text}</pre></details>)}</Glass>
   </div>;

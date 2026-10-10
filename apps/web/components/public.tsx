@@ -7,7 +7,7 @@ import { Button, Glass, Textarea, cn } from './ui';
 
 function Shell({ title, company, children, state }: { title: string; company?: string; children: React.ReactNode; state: 'loading' | 'error' | 'ok' }) {
   return <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-4">
-    <div className="mb-4 flex items-center gap-2"><div className="h-9 w-9 rounded-xl bg-accent/90" /><div><div className="text-[15px] font-semibold">{company ?? 'Loading…'}</div><div className="text-[12px] text-mute">{title}</div></div></div>
+    <div className="mb-4 flex items-center gap-2"><div className="h-9 w-9 rounded-xl bg-white/90" /><div><div className="text-[15px] font-semibold">{company ?? 'Loading…'}</div><div className="text-[12px] text-mute">{title}</div></div></div>
     <Glass strong>{state === 'loading' ? <div className="py-8 text-center text-mute">Loading…</div> : state === 'error' ? <div className="py-8 text-center text-[14px] text-red-300">This link is invalid or has expired.</div> : children}</Glass>
   </main>;
 }
@@ -24,7 +24,7 @@ export function InvitePage({ token }: { token: string }) {
   const m = data?.meeting;
   return <Shell title="Meeting invitation" company={data?.company} state={state}>{m && <div className="space-y-4 text-[14px]">
     <p>Hi {data.clientName ?? 'there'}, we have scheduled a meeting with you.</p>
-    <div className="glass-soft p-3"><div className="font-medium">{dt(m.startAt)}</div><div className="text-mute">{m.type === 'meet' ? 'Online · Google Meet' : m.type === 'office' ? `At our office · ${m.officeAddress ?? ''}` : 'At your site'}</div>{m.meetLink && <a className="mt-2 flex items-center gap-1 text-accent" href={m.meetLink}><Video className="h-4 w-4" />{m.meetLink}</a>}{m.type === 'office' && <a className="mt-2 flex items-center gap-1 text-accent" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.officeAddress ?? '')}`} rel="noreferrer"><MapPin className="h-4 w-4" />Directions</a>}</div>
+    <div className="glass-soft p-3"><div className="font-medium">{dt(m.startAt)}</div><div className="text-mute">{m.type === 'meet' ? 'Online · Google Meet' : m.type === 'office' ? `At our office · ${m.officeAddress ?? ''}` : 'At your site'}</div>{m.meetLink && <a className="mt-2 flex items-center gap-1 text-white" href={m.meetLink}><Video className="h-4 w-4" />{m.meetLink}</a>}{m.type === 'office' && <a className="mt-2 flex items-center gap-1 text-white" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.officeAddress ?? '')}`} rel="noreferrer"><MapPin className="h-4 w-4" />Directions</a>}</div>
     {m.inviteAcceptedAt ? <div className="flex items-center gap-2 text-emerald-300"><CheckCircle2 className="h-5 w-5" />You confirmed this meeting. Thank you!</div> : <Button className="w-full" loading={busy} onClick={accept}>Confirm meeting</Button>}
     <a href={`/p/consent/${data.consentToken}`} className="btn-ghost w-full">Recording consent →</a>
     <a href={fileUrl(`/p/invite/${token}/ics`)} className="btn-ghost w-full">Add to calendar (.ics)</a>

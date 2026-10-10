@@ -34,7 +34,7 @@ export function LeadsList({ dashboard, basePath, title: t = 'Leads', extraQuery 
       </div>
     </div>
     {leads.isLoading ? <Spinner /> : <Table head={['Client', 'Phone', 'Source', 'Status', 'Stage', 'Updated']} rows={rows.map((l) => [
-      <Link key="n" href={`${basePath}/${l.id}`} className="font-medium text-accent hover:underline">{l.client?.name ?? l.clientName ?? 'Unnamed'}</Link>,
+      <Link key="n" href={`${basePath}/${l.id}`} className="font-medium text-white hover:underline">{l.client?.name ?? l.clientName ?? 'Unnamed'}</Link>,
       l.client?.phone ?? <span className="text-mute">hidden</span>, l.source, <StatusChip key="s" status={l.engineerStatus ?? l.salesStatus} />, <StageBadge key="st" stage={l.stage} />, ago(l.leadDate),
     ])} empty="No leads match" />}
     <Pager page={page} total={leads.data?.meta?.total ?? 0} pageSize={25} onPage={setPage} />
@@ -82,7 +82,7 @@ export function NewLeadForm() {
 
 /** Text field with a one-tap "Unknown" (spec: name / area / ethnicity / gender each with Unknown). */
 function UnknownField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return <label className="block"><span className="label">{label}</span><span className="flex gap-1"><input className="field" value={value} onChange={(e) => onChange(e.target.value)} /><button type="button" className={cn('btn-ghost h-9 px-2 text-[12px]', value === 'Unknown' && 'border-accent/40 text-accent')} onClick={() => onChange(value === 'Unknown' ? '' : 'Unknown')}>Unknown</button></span></label>;
+  return <label className="block"><span className="label">{label}</span><span className="flex gap-1"><input className="field" value={value} onChange={(e) => onChange(e.target.value)} /><button type="button" className={cn('btn-ghost h-9 px-2 text-[12px]', value === 'Unknown' && 'border-white/40 text-white')} onClick={() => onChange(value === 'Unknown' ? '' : 'Unknown')}>Unknown</button></span></label>;
 }
 
 /* ---------- LeadHeader ---------- */
@@ -170,7 +170,7 @@ export function LeadOverview({ lead, onChanged }: { lead: any; onChanged: () => 
       </div> : <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <KV k="Requirement" v={lead.requirement} /><KV k="Budget" v={lead.budget ? inr(lead.budget) : '—'} /><KV k="Address" v={lead.client?.exactAddress} /><KV k="Gender" v={lead.client?.gender} /><KV k="Lead date" v={dt(lead.leadDate)} /><KV k="Sales" v={userName(dir.data, lead.salesUserId)} /><KV k="Engineer" v={userName(dir.data, lead.engineerUserId)} />
       </div>}
-      {lead.aiProfile && role !== 'finance' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[.06] p-3 text-[13px]"><div className="mb-1 text-[11.5px] font-medium uppercase tracking-wide text-accent">AI client profile</div><div className="whitespace-pre-wrap">{lead.aiProfile}</div></div>}
+      {lead.aiProfile && role !== 'finance' && <div className="mt-4 rounded-xl border border-white/15 bg-white/[.06] p-3 text-[13px]"><div className="mb-1 text-[11.5px] font-medium uppercase tracking-wide text-white">AI client profile</div><div className="whitespace-pre-wrap">{lead.aiProfile}</div></div>}
     </Glass>
     <div className="space-y-4">
       {role === 'sales' && !lead.transferredToEngineerAt && <Glass>
@@ -200,7 +200,7 @@ export function Timeline({ leadId }: { leadId: string }) {
   const dir = useDirectory();
   const q = useQuery({ queryKey: ['timeline', leadId], queryFn: () => get(`/leads/${leadId}/timeline`).then((r) => r.data as any[]) });
   if (q.isLoading) return <Spinner />;
-  const color: Record<string, string> = { status: 'bg-accent', message: 'bg-blue-300', meeting: 'bg-violet-400', note: 'bg-amber-400', file: 'bg-emerald-400', approval: 'bg-pink-300' };
+  const color: Record<string, string> = { status: 'bg-white', message: 'bg-blue-300', meeting: 'bg-violet-400', note: 'bg-amber-400', file: 'bg-emerald-400', approval: 'bg-pink-300' };
   return <Glass>{!q.data?.length ? <Empty text="No activity yet" /> : <ol className="relative ml-2 border-l border-white/15">{q.data.map((it, i) => <li key={i} className="mb-4 ml-4"><span className={`absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full ${color[it.type] ?? 'bg-ink/30'}`} /><div className="text-[13.5px] font-medium">{it.title}</div>{it.detail && <div className="whitespace-pre-wrap text-[13px] text-ink/90">{it.detail}</div>}<div className="text-[11.5px] text-mute">{dt(it.at)}{it.byUserId && ` · ${userName(dir.data, it.byUserId)}`}</div></li>)}</ol>}</Glass>;
 }
 

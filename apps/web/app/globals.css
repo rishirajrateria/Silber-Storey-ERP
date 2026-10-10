@@ -2,36 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark futuristic glass theme: deep-space base, cyan accent, hairline-lit panels. */
-:root { --accent: 94 230 255; --acc2: 139 120 255; color-scheme: dark; }
+/* Jet black glass theme: pure black base, neutral white glass, white accent, semantic colours only for status. */
+:root { --accent: 255 255 255; color-scheme: dark; }
 html { -webkit-font-smoothing: antialiased; }
-body {
-  @apply text-ink min-h-screen font-sans text-[14px] leading-6;
-  background-color: #070a12;
-  background-image:
-    radial-gradient(1100px 700px at 15% -10%, rgba(94,230,255,.13), transparent 60%),
-    radial-gradient(900px 600px at 95% 10%, rgba(139,120,255,.14), transparent 60%),
-    radial-gradient(800px 600px at 50% 110%, rgba(94,230,255,.06), transparent 60%),
-    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-  background-size: auto, auto, auto, 48px 48px, 48px 48px;
-  background-attachment: fixed;
-}
+body { @apply text-ink min-h-screen font-sans text-[14px] leading-6; background-color: #000; }
 @layer components {
-  .glass { @apply rounded-2xl border border-white/10 bg-white/[.045] shadow-glass backdrop-blur-xl; }
-  .glass-strong { @apply rounded-2xl border border-white/[.18] bg-gradient-to-b from-white/10 to-white/5 shadow-glass backdrop-blur-2xl; }
-  .glass-soft { @apply rounded-xl border border-white/10 bg-white/5 backdrop-blur-md; }
-  .field { @apply w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[14px] text-ink outline-none transition placeholder:text-mute/70 focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(94,230,255,.12),0_0_18px_rgba(94,230,255,.15)] disabled:opacity-60; }
+  .glass { @apply rounded-2xl border border-white/[.09] bg-white/[.04] shadow-glass backdrop-blur-xl; }
+  .glass-strong { @apply rounded-2xl border border-white/[.16] bg-white/[.07] shadow-glass backdrop-blur-2xl; }
+  .glass-soft { @apply rounded-xl border border-white/[.09] bg-white/5 backdrop-blur-md; }
+  .field { @apply w-full rounded-xl border border-white/[.09] bg-white/5 px-3 py-2 text-[14px] text-ink outline-none transition placeholder:text-mute/70 focus:border-white/40 focus:shadow-[0_0_0_3px_rgba(255,255,255,.08)] disabled:opacity-60; }
   .btn { @apply inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3.5 text-[13.5px] font-medium transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none; }
-  .btn-primary { @apply btn border border-transparent bg-gradient-to-br from-accent to-[#3fb8ff] text-[#06111a] shadow-[0_0_22px_rgba(94,230,255,.3)] hover:shadow-[0_0_30px_rgba(94,230,255,.5)] hover:brightness-105; }
-  .btn-ghost { @apply btn border border-white/[.18] bg-white/5 text-ink hover:border-white/30 hover:bg-white/10; }
+  .btn-primary { @apply btn border border-transparent bg-white text-black hover:bg-neutral-200; }
+  .btn-ghost { @apply btn border border-white/[.16] bg-white/5 text-ink hover:border-white/30 hover:bg-white/10; }
   .btn-danger { @apply btn border border-red-300/40 bg-red-400/15 text-red-300 hover:bg-red-400/25; }
   .chip { @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium leading-5; }
   .nav-item { @apply flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-[13.5px] text-mute transition hover:bg-white/5 hover:text-ink; }
-  .nav-item.active { @apply border-accent/25 bg-gradient-to-r from-accent/[.16] to-accent/[.03] text-white shadow-[inset_2px_0_0_rgb(94_230_255)]; }
+  .nav-item.active { @apply border-white/[.12] bg-white/[.08] text-white; }
   .label { @apply mb-1.5 block text-[10.5px] font-medium uppercase tracking-[.14em] text-mute; }
   .th { @apply px-3 py-3 text-left text-[10.5px] font-medium uppercase tracking-[.14em] text-mute; }
   .td { @apply px-3 py-2.5 align-middle; }
 }
-select option { background: #0f1526; }
+select option { background: #111; }
 ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 8px; }

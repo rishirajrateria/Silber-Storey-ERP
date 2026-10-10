@@ -12,7 +12,7 @@ export function Button({ variant = 'primary', loading, className, children, ...p
 }
 /** Disabled primary action with tooltip explaining the blocking rule (Section 6.1). */
 export function RuleButton({ blocked, children, ...p }: Parameters<typeof Button>[0] & { blocked?: string | null }) {
-  return <span className="group relative inline-flex">{/* tooltip */}<Button {...p} disabled={p.disabled || !!blocked}>{children}</Button>{blocked && <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-max max-w-[260px] -translate-x-1/2 rounded-lg border border-white/[.18] bg-[#0f1526] px-2.5 py-1.5 text-[12px] text-ink shadow-lg group-hover:block">{blocked}</span>}</span>;
+  return <span className="group relative inline-flex">{/* tooltip */}<Button {...p} disabled={p.disabled || !!blocked}>{children}</Button>{blocked && <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-max max-w-[260px] -translate-x-1/2 rounded-lg border border-white/[.18] bg-[#111] px-2.5 py-1.5 text-[12px] text-ink shadow-lg group-hover:block">{blocked}</span>}</span>;
 }
 export function Input({ className, label, error, ...p }: InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string }) {
   return <label className="block">{label && <span className="label">{label}</span>}<input className={cn('field', error && 'border-red-400', className)} {...p} />{error && <span className="mt-1 block text-[12px] text-red-300">{error}</span>}</label>;
@@ -24,12 +24,12 @@ export function Select({ className, label, children, ...p }: SelectHTMLAttribute
   return <label className="block">{label && <span className="label">{label}</span>}<span className="relative block"><select className={cn('field appearance-none pr-8', className)} {...p}>{children}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-mute" /></span></label>;
 }
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
-  return <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 text-[13.5px]"><span className={cn('relative h-5 w-9 rounded-full border transition', checked ? 'border-transparent bg-accent shadow-soft' : 'border-white/[.18] bg-white/10')}><span className={cn('absolute top-0.5 h-4 w-4 rounded-full shadow transition', checked ? 'left-[18px] bg-[#06111a]' : 'left-0.5 bg-white')} /></span>{label}</button>;
+  return <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 text-[13.5px]"><span className={cn('relative h-5 w-9 rounded-full border transition', checked ? 'border-transparent bg-white' : 'border-white/[.18] bg-white/10')}><span className={cn('absolute top-0.5 h-4 w-4 rounded-full shadow transition', checked ? 'left-[18px] bg-[#06111a]' : 'left-0.5 bg-white')} /></span>{label}</button>;
 }
 
 const CHIP_COLORS: Record<string, string> = {
   gray: 'border-white/15 bg-white/[.06] text-ink', blue: 'border-blue-300/35 bg-blue-300/[.12] text-blue-200', green: 'border-emerald-300/35 bg-emerald-400/[.12] text-emerald-300', amber: 'border-amber-300/35 bg-amber-400/[.12] text-amber-300',
-  red: 'border-red-300/35 bg-red-400/[.12] text-red-300', violet: 'border-violet-300/40 bg-violet-400/[.14] text-violet-200', accent: 'border-accent/35 bg-accent/[.12] text-accent',
+  red: 'border-red-300/35 bg-red-400/[.12] text-red-300', violet: 'border-violet-300/40 bg-violet-400/[.14] text-violet-200', accent: 'border-accent/35 bg-white/10 text-white',
 };
 export function Chip({ color = 'gray', children, className }: { color?: keyof typeof CHIP_COLORS; children: ReactNode; className?: string }) { return <span className={cn('chip', CHIP_COLORS[color], className)}>{children}</span>; }
 /** Status chip colour-coded (config-driven by key). */
@@ -45,14 +45,14 @@ export function Dialog({ open, onClose, title, children, wide }: { open: boolean
   useEffect(() => { if (!open) return; const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [open, onClose]);
   if (!open) return null;
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/20 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
-    <div className={cn('glass-strong max-h-[92vh] w-full overflow-y-auto rounded-b-none !bg-gradient-to-b !from-[#161c30]/95 !to-[#0c101e]/95 p-5 sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')} onClick={(e) => e.stopPropagation()}>
+    <div className={cn('glass-strong max-h-[92vh] w-full overflow-y-auto rounded-b-none !bg-[#101010]/95 p-5 sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')} onClick={(e) => e.stopPropagation()}>
       <div className="mb-4 flex items-center justify-between"><h3 className="text-[16px] font-semibold">{title}</h3><button onClick={onClose} className="rounded-lg p-1 text-mute hover:bg-white/10"><X className="h-4 w-4" /></button></div>{children}
     </div></div>;
 }
 const TabsCtx = createContext<{ value: string; set: (v: string) => void }>({ value: '', set: () => {} });
 export function Tabs({ value, onChange, tabs, children }: { value: string; onChange: (v: string) => void; tabs: Array<{ key: string; label: string; count?: number }>; children: ReactNode }) {
   return <TabsCtx.Provider value={{ value, set: onChange }}>
-    <div className="glass-soft mb-4 flex gap-1 overflow-x-auto p-1">{tabs.map((t) => <button key={t.key} onClick={() => onChange(t.key)} className={cn('whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition', value === t.key ? 'bg-accent/[.12] text-accent shadow-[inset_0_0_0_1px_rgba(94,230,255,.3)]' : 'text-mute hover:bg-white/5 hover:text-ink')}>{t.label}{t.count != null && <span className="ml-1.5 rounded-full bg-white/10 px-1.5 text-[11px]">{t.count}</span>}</button>)}</div>
+    <div className="glass-soft mb-4 flex gap-1 overflow-x-auto p-1">{tabs.map((t) => <button key={t.key} onClick={() => onChange(t.key)} className={cn('whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition', value === t.key ? 'bg-white/10 text-white shadow-soft' : 'text-mute hover:bg-white/5 hover:text-ink')}>{t.label}{t.count != null && <span className="ml-1.5 rounded-full bg-white/10 px-1.5 text-[11px]">{t.count}</span>}</button>)}</div>
     {children}
   </TabsCtx.Provider>;
 }
@@ -66,7 +66,7 @@ export function Empty({ text }: { text: string }) { return <div className="flex 
 export function Spinner() { return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-mute" /></div>; }
 export function PageHeader({ title, sub, actions }: { title: string; sub?: ReactNode; actions?: ReactNode }) { return <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-[22px] font-semibold tracking-tight">{title}</h1>{sub && <div className="mt-0.5 text-[13px] text-mute">{sub}</div>}</div>{actions && <div className="flex flex-wrap gap-2">{actions}</div>}</div>; }
 export function KV({ k, v }: { k: string; v: ReactNode }) { return <div className="min-w-0"><div className="text-[11.5px] font-medium uppercase tracking-wide text-mute">{k}</div><div className="truncate text-[14px]">{v ?? '—'}</div></div>; }
-export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) { return <div className="glass relative overflow-hidden p-4 after:absolute after:-right-8 after:-top-8 after:h-24 after:w-24 after:rounded-full after:bg-[radial-gradient(circle,rgba(94,230,255,.18),transparent_70%)]"><div className="text-[12px] font-medium uppercase tracking-wide text-mute">{label}</div><div className="mt-1 font-mono text-[24px] font-semibold tracking-tight">{value}</div>{hint && <div className="text-[12px] text-mute">{hint}</div>}</div>; }
+export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) { return <div className="glass relative overflow-hidden p-4 after:absolute after:-right-8 after:-top-8 after:h-24 after:w-24 after:rounded-full after:hidden"><div className="text-[12px] font-medium uppercase tracking-wide text-mute">{label}</div><div className="mt-1 font-mono text-[24px] font-semibold tracking-tight">{value}</div>{hint && <div className="text-[12px] text-mute">{hint}</div>}</div>; }
 export function Pager({ page, total, pageSize, onPage }: { page: number; total: number; pageSize: number; onPage: (p: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return <div className="mt-3 flex items-center justify-between text-[12.5px] text-mute"><span>{total} total</span><div className="flex items-center gap-2"><Button variant="ghost" className="h-8" disabled={page <= 1} onClick={() => onPage(page - 1)}>Prev</Button><span>{page} / {pages}</span><Button variant="ghost" className="h-8" disabled={page >= pages} onClick={() => onPage(page + 1)}>Next</Button></div></div>;
