@@ -97,6 +97,7 @@ enum ApprovalType {
   quote_version
   milestone_pct_change
   credit_note
+  invoice_cancellation
   new_user
   meeting_invite
 }
@@ -343,6 +344,8 @@ model Meeting {
   consentToken      String        @unique
   inviteAcceptedAt  DateTime?
   consentAcceptedAt DateTime?
+  consentIp         String?
+  inviteIp          String?
   status            MeetingStatus @default(scheduled)
   travelStartedAt   DateTime?
   checkinAt         DateTime?

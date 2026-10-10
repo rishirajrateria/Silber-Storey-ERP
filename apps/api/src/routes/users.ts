@@ -4,6 +4,7 @@ import { prisma } from '../lib/db.js';
 import { CreateUserSchema, ROLES, DASHBOARDS } from '@app/shared';
 import { requireAdminFull, requireRole } from '../plugins/auth.js';
 import { requestUser } from '../services/admin.js';
+import { sessions } from '../plugins/session.js';
 
 export async function userRoutes(app: FastifyInstance) {
   app.get('/users', { preHandler: requireRole('admin') }, async () => ({ data: await prisma.user.findMany({ include: { permissions: true }, orderBy: { createdAt: 'asc' } }) }));
@@ -18,6 +19,7 @@ export async function userRoutes(app: FastifyInstance) {
     const b = z.object({ active: z.boolean().optional(), role: z.enum(ROLES).optional(), name: z.string().optional() }).parse(req.body);
     const before = await prisma.user.findUnique({ where: { id } });
     const u = await prisma.user.update({ where: { id }, data: b });
+    if (b.active === false || (b.role && before && b.role !== before.role)) await sessions.destroyAllForUser(id); // removing/changing access revokes sessions immediately
     req.audit = { entityType: 'User', entityId: id, before, after: u };
     return { data: u };
   });

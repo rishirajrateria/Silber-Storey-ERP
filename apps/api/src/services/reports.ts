@@ -46,7 +46,29 @@ export async function stats(dashboard: string, userId?: string) {
     prisma.delay.count({ where: { resolvedAt: null, ...(userId ? { userId } : {}) } }),
     prisma.approval.count({ where: { status: 'pending' } }),
   ]);
-  return { total, open, transferred, meetings, quotes, invoiced: invoiced._sum.total ?? 0, collected: paid._sum.amount ?? 0, delays, pendingApprovals };
+  const dayAgo = new Date(Date.now() - 86400000), weekAgo = new Date(Date.now() - 7 * 86400000), monthAgo = new Date(Date.now() - 30 * 86400000);
+  const extras: Record<string, unknown> = {};
+  if (dashboard === 'sales' || dashboard === 'global') {
+    const [today, week, month, lost, fuDue] = await Promise.all([prisma.lead.count({ where: { ...scope, leadDate: { gte: dayAgo } } }), prisma.lead.count({ where: { ...scope, leadDate: { gte: weekAgo } } }), prisma.lead.count({ where: { ...scope, leadDate: { gte: monthAgo } } }), prisma.lead.groupBy({ by: ['lostReason'], where: { ...scope, lostReason: { not: null } }, _count: true }), prisma.followUp.count({ where: { done: false, dueAt: { lte: new Date(Date.now() + 86400000) }, ...(userId ? { userId } : {}) } })]);
+    Object.assign(extras, { leadsToday: today, leadsWeek: week, leadsMonth: month, followUpsDue: fuDue, lostReasons: lost.map((l) => ({ reason: l.lostReason, count: l._count })) });
+  }
+  if (dashboard === 'engineer' || dashboard === 'global') {
+    const mw: any = userId ? { engineerUserId: userId } : {};
+    const [noShow, vs, ageing] = await Promise.all([prisma.meeting.count({ where: { ...mw, status: 'no_show' } }), prisma.quote.findMany({ where: scope.engineerUserId ? { lead: { engineerUserId: scope.engineerUserId } } : {}, select: { currentVersionNo: true } }), prisma.lead.findMany({ where: { ...scope, transferredToEngineerAt: { not: null }, pushedToFinanceAt: null, lostReason: null }, select: { transferredToEngineerAt: true } })]);
+    const ageDays = ageing.map((l) => (Date.now() - l.transferredToEngineerAt!.getTime()) / 86400000);
+    Object.assign(extras, { noShows: noShow, revisionsPerQuote: vs.length ? +(vs.reduce((a, q) => a + q.currentVersionNo, 0) / vs.length).toFixed(1) : 0, avgAgeingDays: ageDays.length ? +(ageDays.reduce((a, b) => a + b, 0) / ageDays.length).toFixed(1) : 0, ageingOver7: ageDays.filter((d) => d > 7).length });
+  }
+  if (dashboard === 'finance' || dashboard === 'global') {
+    const inv = await prisma.invoice.findMany({ where: { status: { in: ['sent', 'partially_paid'] } }, include: { payments: true } });
+    const outstanding = inv.reduce((a, i) => a + i.total - i.payments.reduce((x, p) => x + p.amount, 0), 0);
+    Object.assign(extras, { outstanding: +outstanding.toFixed(2), overdueInvoices: inv.filter((i) => i.sentAt && Date.now() - i.sentAt.getTime() > 7 * 86400000).length });
+  }
+  if (dashboard === 'design_head' || dashboard === 'junior_designer' || dashboard === 'global') {
+    const hw: any = userId ? (dashboard === 'junior_designer' ? { juniorUserId: userId } : { designHeadUserId: userId }) : {};
+    const [received, pending, meetings] = await Promise.all([prisma.handover.count({ where: hw }), prisma.handover.count({ where: { ...hw, completedAt: null } }), prisma.meeting.count({ where: { kind: { in: ['internal', 'second_client'] }, status: 'completed', ...(userId ? { attendeeUserIds: { has: userId } } : {}) } })]);
+    Object.assign(extras, { handoversReceived: received, handoversPending: pending, designMeetings: meetings });
+  }
+  return { total, open, transferred, meetings, quotes, invoiced: invoiced._sum.total ?? 0, collected: paid._sum.amount ?? 0, delays, pendingApprovals, ...extras };
 }
 
 export async function runScheduledReports() {

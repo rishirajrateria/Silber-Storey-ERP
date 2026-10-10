@@ -14,14 +14,14 @@ function LoginInner() {
   const dev = async () => { setBusy(true); setErr(''); try { const u = await post('/auth/dev-login', { email }); r.replace(ROLE_HOME[u.data.role as keyof typeof ROLE_HOME]); } catch (e: any) { setErr(e.message); } finally { setBusy(false); } };
   return <main className="flex min-h-screen items-center justify-center p-4">
     <Glass strong className="w-full max-w-sm">
-      <div className="mb-6"><div className="mb-3 h-10 w-10 rounded-xl bg-accent/90 shadow-soft" /><h1 className="text-[20px] font-semibold tracking-tight">Sign in</h1><p className="text-[13px] text-mute">Lead management & consultation</p></div>
+      <div className="mb-6"><div className="mb-3 h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[#8b78ff] shadow-soft" /><h1 className="text-[20px] font-semibold tracking-tight">Sign in</h1><p className="text-[13px] text-mute">Lead management & consultation</p></div>
       <a href="/api/v1/auth/google/start" className="btn-primary w-full">Continue with Google</a>
-      {users.length > 0 && <div className="mt-6 border-t border-white/70 pt-4">
+      {users.length > 0 && <div className="mt-6 border-t border-white/10 pt-4">
         <div className="mb-2 text-[12px] font-medium uppercase tracking-wide text-mute">Mock mode · pick a user</div>
         <Select value={email} onChange={(e) => setEmail(e.target.value)}>{users.map((u) => <option key={u.email} value={u.email}>{u.name} · {u.role}</option>)}</Select>
         <Button variant="ghost" className="mt-2 w-full" onClick={dev} loading={busy}>Sign in as selected user</Button>
       </div>}
-      {err && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">{err}</p>}
+      {err && <p className="mt-4 rounded-xl border border-red-300/40 bg-red-400/10 px-3 py-2 text-[13px] text-red-300">{err}</p>}
     </Glass>
   </main>;
 }

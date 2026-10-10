@@ -114,7 +114,11 @@ export async function leadRoutes(app: FastifyInstance) {
       prisma.followUp.findMany({ where: { userId, dueAt: { gte: from, lte: to } }, include: { lead: { include: { client: true } } } }),
       calendar.freeBusy(userId, from, to).catch(() => []),
     ]);
-    return { meetings, followUps, busy };
+    const { getSetting } = await import('../lib/settings.js');
+    const { maps } = await import('../integrations/index.js');
+    const office = { lat: Number(await getSetting('officeLat')), lng: Number(await getSetting('officeLng')) };
+    const withTravel = meetings.map((m) => { const c = m.lead.client; if (m.type !== 'site' || c.addressLat == null || c.addressLng == null) return { ...m, travelMin: null, distanceKm: null }; const km = maps.distanceM(office, { lat: c.addressLat, lng: c.addressLng }) / 1000; return { ...m, distanceKm: +km.toFixed(1), travelMin: Math.round((km / 22) * 60) + 5 }; });
+    return { meetings: withTravel, followUps, busy };
   };
   app.get('/calendar/me', { preHandler: requireRole('all') }, async (req) => { const q = z.object({ from: z.string(), to: z.string() }).parse(req.query); return { data: await calendarFor(req.user!.id, new Date(q.from), new Date(q.to)) }; });
   app.get('/calendar/user/:userId', { preHandler: requireRole('engineer', 'admin') }, async (req) => {

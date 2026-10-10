@@ -9,7 +9,7 @@ import { useDirectory, useInvalidate, useMe, useSources, useStatuses, userName }
 import { dt, ago, title, inr, toLocalInput, fromLocalInput } from '@/lib/format';
 import { toast, errToast } from '@/lib/store';
 import { queueOrSend } from '@/lib/offline';
-import { Button, Chip, Dialog, Empty, Glass, Input, KV, Pager, RuleButton, Select, Spinner, StageBadge, StatusChip, Table, Textarea, Toggle } from './ui';
+import { Button, Chip, Dialog, Empty, Glass, Input, KV, Pager, RuleButton, Select, Spinner, StageBadge, StatusChip, Table, Textarea, Toggle, cn, useConfirm } from './ui';
 
 export const leadHref = (role: string, id: string) => `/${role === 'design_head' || role === 'junior_designer' ? 'design' : role}/leads/${id}`;
 
@@ -62,11 +62,11 @@ export function NewLeadForm() {
     <h1 className="mb-4 text-[22px] font-semibold tracking-tight">New lead</h1>
     <Glass className="grid gap-3 sm:grid-cols-2">
       <Input label="Phone *" value={f.phone} onChange={set('phone')} placeholder="+91…" error={errs.phone} required />
-      <Input label="Name" value={f.name} onChange={set('name')} />
+      <UnknownField label="Name" value={f.name} onChange={(v) => setF({ ...f, name: v })} />
       <Input label="Email" type="email" value={f.email} onChange={set('email')} />
-      <Input label="Location / area" value={f.locationArea} onChange={set('locationArea')} />
-      <Input label="Ethnicity" value={f.ethnicity} onChange={set('ethnicity')} />
-      <Select label="Gender" value={f.gender} onChange={set('gender')}><option value="">—</option><option>female</option><option>male</option><option>other</option></Select>
+      <UnknownField label="Location / area" value={f.locationArea} onChange={(v) => setF({ ...f, locationArea: v })} />
+      <UnknownField label="Ethnicity" value={f.ethnicity} onChange={(v) => setF({ ...f, ethnicity: v })} />
+      <Select label="Gender" value={f.gender} onChange={set('gender')}><option value="">—</option><option value="Unknown">Unknown</option><option>female</option><option>male</option><option>other</option></Select>
       <Select label="Source *" value={f.sourceId} onChange={set('sourceId')}>{(sources.data ?? []).map((s: any) => <option key={s.id} value={s.id}>{s.label}</option>)}</Select>
       <div className="sm:col-span-2"><Textarea label="Requirement" value={f.requirement} onChange={set('requirement')} /></div>
       <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="ghost" onClick={() => r.back()}>Cancel</Button><Button type="submit" loading={busy}>Create lead</Button></div>
@@ -80,10 +80,16 @@ export function NewLeadForm() {
   </form>;
 }
 
+/** Text field with a one-tap "Unknown" (spec: name / area / ethnicity / gender each with Unknown). */
+function UnknownField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return <label className="block"><span className="label">{label}</span><span className="flex gap-1"><input className="field" value={value} onChange={(e) => onChange(e.target.value)} /><button type="button" className={cn('btn-ghost h-9 px-2 text-[12px]', value === 'Unknown' && 'border-accent/40 text-accent')} onClick={() => onChange(value === 'Unknown' ? '' : 'Unknown')}>Unknown</button></span></label>;
+}
+
 /* ---------- LeadHeader ---------- */
 export function LeadHeader({ lead, onChanged, children }: { lead: any; onChanged: () => void; children?: React.ReactNode }) {
   const me = useMe()!; const role = me.user.role;
-  const [statusOpen, setStatusOpen] = useState(false); const [contactOpen, setContactOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false); const [contactOpen, setContactOpen] = useState(false); const [closeOpen, setCloseOpen] = useState(false);
+  const closeProject = async (keep: boolean) => { try { await post(`/leads/${lead.id}/close-project`, { keepRecordings: keep }); toast(keep ? 'Project closed · recordings kept' : 'Project closed · recordings deleted, text kept'); setCloseOpen(false); onChanged(); } catch (e) { errToast(e); } };
   const canStatus = (role === 'sales' && !lead.transferredToEngineerAt) || (role === 'engineer' && lead.transferredToEngineerAt && !lead.handoverCompletedAt);
   return <div className="glass mb-4 p-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -100,11 +106,14 @@ export function LeadHeader({ lead, onChanged, children }: { lead: any; onChanged
         {lead.engineerStatus && <div className="text-[12px] text-mute">Engineer <StatusChip status={lead.engineerStatus} /></div>}
         {canStatus && <Button variant="ghost" onClick={() => setStatusOpen(true)}>Change status</Button>}
         {['sales', 'engineer', 'finance'].includes(role) && <Button variant="ghost" onClick={() => setContactOpen(true)}><MessageCircle className="h-4 w-4" />Log contact</Button>}
+        {role === 'admin' && !lead.projectClosedAt && <Button variant="ghost" onClick={() => setCloseOpen(true)}>Close project</Button>}
+        {lead.projectClosedAt && <Chip color="gray">closed · recordings {lead.recordingsKept ? 'kept' : 'deleted'}</Chip>}
         {children}
       </div>
     </div>
     <StatusDialog open={statusOpen} onClose={() => setStatusOpen(false)} lead={lead} dashboard={role === 'sales' ? 'sales' : 'engineer'} onChanged={onChanged} />
     <LogContactDialog open={contactOpen} onClose={() => setContactOpen(false)} leadId={lead.id} onChanged={onChanged} />
+    <Dialog open={closeOpen} onClose={() => setCloseOpen(false)} title="Close project"><p className="text-[13.5px]">Closing archives the lead. Recordings are kept until you decide here; transcripts, minutes and documents are always kept.</p><div className="mt-4 flex justify-end gap-2"><Button variant="ghost" onClick={() => closeProject(true)}>Close · keep recordings</Button><Button variant="danger" onClick={() => closeProject(false)}>Close · delete recordings</Button></div></Dialog>
   </div>;
 }
 
@@ -161,7 +170,7 @@ export function LeadOverview({ lead, onChanged }: { lead: any; onChanged: () => 
       </div> : <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <KV k="Requirement" v={lead.requirement} /><KV k="Budget" v={lead.budget ? inr(lead.budget) : '—'} /><KV k="Address" v={lead.client?.exactAddress} /><KV k="Gender" v={lead.client?.gender} /><KV k="Lead date" v={dt(lead.leadDate)} /><KV k="Sales" v={userName(dir.data, lead.salesUserId)} /><KV k="Engineer" v={userName(dir.data, lead.engineerUserId)} />
       </div>}
-      {lead.aiProfile && role !== 'finance' && <div className="mt-4 rounded-xl border border-accent/10 bg-accent/5 p-3 text-[13px]"><div className="mb-1 text-[11.5px] font-medium uppercase tracking-wide text-accent">AI client profile</div><div className="whitespace-pre-wrap">{lead.aiProfile}</div></div>}
+      {lead.aiProfile && role !== 'finance' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[.06] p-3 text-[13px]"><div className="mb-1 text-[11.5px] font-medium uppercase tracking-wide text-accent">AI client profile</div><div className="whitespace-pre-wrap">{lead.aiProfile}</div></div>}
     </Glass>
     <div className="space-y-4">
       {role === 'sales' && !lead.transferredToEngineerAt && <Glass>
@@ -171,7 +180,7 @@ export function LeadOverview({ lead, onChanged }: { lead: any; onChanged: () => 
       </Glass>}
       {lead.transferredToEngineerAt && role === 'sales' && <Glass><div className="text-[13px] text-mute">Transferred {ago(lead.transferredToEngineerAt)} · read-only</div></Glass>}
       {followUps.length > 0 && <Glass><div className="mb-2 text-[12px] font-medium uppercase tracking-wide text-mute">Open follow-ups</div>{followUps.map((f: any) => <div key={f.id} className="flex items-center justify-between py-1 text-[13px]"><span>{dt(f.dueAt)}</span><Chip color={f.priority === 'high' ? 'red' : f.priority === 'med' ? 'amber' : 'gray'}>{f.priority}</Chip></div>)}</Glass>}
-      {lead.lostReason && <Glass className="border-red-200"><div className="text-[12px] font-medium uppercase tracking-wide text-red-700">Lost</div><div className="text-[13px]">{lead.lostReason}</div></Glass>}
+      {lead.lostReason && <Glass className="border-red-300/40"><div className="text-[12px] font-medium uppercase tracking-wide text-red-300">Lost</div><div className="text-[13px]">{lead.lostReason}</div></Glass>}
     </div>
   </div>;
 }
@@ -191,8 +200,8 @@ export function Timeline({ leadId }: { leadId: string }) {
   const dir = useDirectory();
   const q = useQuery({ queryKey: ['timeline', leadId], queryFn: () => get(`/leads/${leadId}/timeline`).then((r) => r.data as any[]) });
   if (q.isLoading) return <Spinner />;
-  const color: Record<string, string> = { status: 'bg-accent', message: 'bg-blue-400', meeting: 'bg-violet-400', note: 'bg-amber-400', file: 'bg-emerald-400', approval: 'bg-pink-400' };
-  return <Glass>{!q.data?.length ? <Empty text="No activity yet" /> : <ol className="relative ml-2 border-l border-ink/10">{q.data.map((it, i) => <li key={i} className="mb-4 ml-4"><span className={`absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full ${color[it.type] ?? 'bg-ink/30'}`} /><div className="text-[13.5px] font-medium">{it.title}</div>{it.detail && <div className="whitespace-pre-wrap text-[13px] text-ink/80">{it.detail}</div>}<div className="text-[11.5px] text-mute">{dt(it.at)}{it.byUserId && ` · ${userName(dir.data, it.byUserId)}`}</div></li>)}</ol>}</Glass>;
+  const color: Record<string, string> = { status: 'bg-accent', message: 'bg-blue-300', meeting: 'bg-violet-400', note: 'bg-amber-400', file: 'bg-emerald-400', approval: 'bg-pink-300' };
+  return <Glass>{!q.data?.length ? <Empty text="No activity yet" /> : <ol className="relative ml-2 border-l border-white/15">{q.data.map((it, i) => <li key={i} className="mb-4 ml-4"><span className={`absolute -left-[5px] mt-1.5 h-2.5 w-2.5 rounded-full ${color[it.type] ?? 'bg-ink/30'}`} /><div className="text-[13.5px] font-medium">{it.title}</div>{it.detail && <div className="whitespace-pre-wrap text-[13px] text-ink/90">{it.detail}</div>}<div className="text-[11.5px] text-mute">{dt(it.at)}{it.byUserId && ` · ${userName(dir.data, it.byUserId)}`}</div></li>)}</ol>}</Glass>;
 }
 
 /* ---------- Notes & Files ---------- */
@@ -202,7 +211,7 @@ export function NotesPanel({ leadId, meetingId }: { leadId: string; meetingId?: 
   const [text, setText] = useState(''); const [busy, setBusy] = useState(false);
   const add = async () => { setBusy(true); try { const r: any = await queueOrSend('note', 'POST', `/leads/${leadId}/notes`, { text, meetingId }); toast(r?.queued ? 'Queued (offline)' : 'Note added'); setText(''); q.refetch(); inv('timeline'); } catch (e) { errToast(e); } finally { setBusy(false); } };
   return <Glass><div className="mb-3 flex gap-2"><input className="field" placeholder="Add a note…" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && text.trim() && add()} /><Button onClick={add} loading={busy} disabled={!text.trim()}>Add</Button></div>
-    {q.isLoading ? <Spinner /> : !q.data?.length ? <Empty text="No notes" /> : <div className="divide-y divide-white/60">{q.data.map((n) => <div key={n.id} className="py-2.5"><div className="whitespace-pre-wrap text-[13.5px]">{n.text}</div><div className="text-[11.5px] text-mute">{userName(dir.data, n.byUserId)} · {ago(n.at)}</div></div>)}</div>}</Glass>;
+    {q.isLoading ? <Spinner /> : !q.data?.length ? <Empty text="No notes" /> : <div className="divide-y divide-white/10">{q.data.map((n) => <div key={n.id} className="py-2.5"><div className="whitespace-pre-wrap text-[13.5px]">{n.text}</div><div className="text-[11.5px] text-mute">{userName(dir.data, n.byUserId)} · {ago(n.at)}</div></div>)}</div>}</Glass>;
 }
 export function FilesPanel({ leadId }: { leadId: string }) {
   const dir = useDirectory();
@@ -212,5 +221,5 @@ export function FilesPanel({ leadId }: { leadId: string }) {
   const open = async (id: string) => { const r = await get(`/leads/${leadId}/files/${id}`); window.open(r.data.url, '_blank'); };
   const remove = async (id: string) => { await del(`/leads/${leadId}/files/${id}`); q.refetch(); };
   return <Glass><label className="btn-ghost mb-3 cursor-pointer"><Upload className="h-4 w-4" />{busy ? 'Uploading…' : 'Upload file'}<input type="file" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} /></label>
-    {q.isLoading ? <Spinner /> : !q.data?.length ? <Empty text="No files" /> : <div className="divide-y divide-white/60">{q.data.map((f) => <div key={f.id} className="flex items-center gap-3 py-2 text-[13.5px]"><Paperclip className="h-4 w-4 text-mute" /><button className="flex-1 truncate text-left hover:underline" onClick={() => open(f.id)}>{f.name}</button><span className="text-[12px] text-mute">{(f.bytes / 1024).toFixed(0)} KB · {userName(dir.data, f.byUserId)}</span><button onClick={() => remove(f.id)} className="rounded p-1 text-mute hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button></div>)}</div>}</Glass>;
+    {q.isLoading ? <Spinner /> : !q.data?.length ? <Empty text="No files" /> : <div className="divide-y divide-white/10">{q.data.map((f) => <div key={f.id} className="flex items-center gap-3 py-2 text-[13.5px]"><Paperclip className="h-4 w-4 text-mute" /><button className="flex-1 truncate text-left hover:underline" onClick={() => open(f.id)}>{f.name}</button><span className="text-[12px] text-mute">{(f.bytes / 1024).toFixed(0)} KB · {userName(dir.data, f.byUserId)}</span><button onClick={() => remove(f.id)} className="rounded p-1 text-mute hover:bg-red-400/10 hover:text-red-300"><Trash2 className="h-4 w-4" /></button></div>)}</div>}</Glass>;
 }

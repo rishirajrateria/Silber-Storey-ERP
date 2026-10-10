@@ -213,8 +213,10 @@ export async function roadmap(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: LEAD_INCLUDE });
   if (!lead) throw notFound('Lead');
   const hist = await prisma.statusHistory.findMany({ where: { leadId, dashboard: 'stage' }, orderBy: { at: 'asc' } });
-  const steps = hist.map((h, i) => ({ stage: h.toStatusId, at: h.at, byUserId: h.byUserId, days: i < hist.length - 1 ? +((hist[i + 1].at.getTime() - h.at.getTime()) / 86400000).toFixed(2) : +((Date.now() - h.at.getTime()) / 86400000).toFixed(2) }));
-  return { lead, steps };
+  const { getSetting } = await import('../lib/settings.js');
+  const th = (await getSetting<Record<string, number>>('stageThresholdDays')) ?? {};
+  const steps = hist.map((h, i) => { const days = i < hist.length - 1 ? +((hist[i + 1].at.getTime() - h.at.getTime()) / 86400000).toFixed(2) : +((Date.now() - h.at.getTime()) / 86400000).toFixed(2); return { stage: h.toStatusId, at: h.at, byUserId: h.byUserId, days, thresholdDays: th[h.toStatusId] ?? null, breached: th[h.toStatusId] != null && days > th[h.toStatusId] }; });
+  return { lead, steps, thresholds: th };
 }
 
 export async function requireNotArchived(lead: { archived: boolean }) { if (lead.archived) throw new AppError(409, 'ARCHIVED', 'Lead archived'); }

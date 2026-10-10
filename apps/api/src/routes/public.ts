@@ -10,10 +10,11 @@ export async function publicRoutes(app: FastifyInstance) {
   const rl = { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } };
   const tok = (req: any) => (req.params as { token: string }).token;
   app.get('/p/invite/:token', rl, async (req) => ({ data: await m.publicInvite(tok(req)) }));
-  app.post('/p/invite/:token/accept', rl, async (req) => ({ data: await m.publicInviteAccept(tok(req)) }));
+  app.post('/p/invite/:token/accept', rl, async (req) => ({ data: await m.publicInviteAccept(tok(req), req.ip) }));
+  app.get('/p/invite/:token/ics', rl, async (req, reply) => { reply.header('content-type', 'text/calendar; charset=utf-8').header('content-disposition', 'attachment; filename="meeting.ics"'); return reply.send(await m.publicInviteIcs(tok(req))); });
   app.post('/p/invite/:token/reschedule', rl, async (req) => ({ data: await m.publicInviteReschedule(tok(req), z.object({ preferredSlots: z.array(z.string()).min(1) }).parse(req.body).preferredSlots) }));
   app.get('/p/consent/:token', rl, async (req) => ({ data: await m.publicConsent(tok(req)) }));
-  app.post('/p/consent/:token/accept', rl, async (req) => ({ data: await m.publicConsentAccept(tok(req)) }));
+  app.post('/p/consent/:token/accept', rl, async (req) => ({ data: await m.publicConsentAccept(tok(req), req.ip) }));
   app.get('/p/mom/:token', rl, async (req) => ({ data: await m.publicMom(tok(req)) }));
   app.post('/p/mom/:token/objection', rl, async (req) => ({ data: await m.publicMomObjection(tok(req), z.object({ remark: z.string().min(1) }).parse(req.body).remark, req.ip) }));
   app.get('/p/quote/:token', rl, async (req) => ({ data: await q.publicQuote(tok(req)) }));

@@ -18,7 +18,7 @@ export const ENGINEER_STATUS_KEYS = [
   'multiple_quotes_sent', 'quote_approved_payment', 'pushed_to_finance', 'advance_paid', 'pushed_to_design', 'handover_complete', 'lost',
 ] as const;
 
-export const APPROVAL_TYPES = ['duplicate_override', 'quote_version', 'milestone_pct_change', 'credit_note', 'new_user', 'meeting_invite'] as const;
+export const APPROVAL_TYPES = ['duplicate_override', 'quote_version', 'milestone_pct_change', 'credit_note', 'invoice_cancellation', 'new_user', 'meeting_invite'] as const;
 export type ApprovalType = (typeof APPROVAL_TYPES)[number];
 
 export const MEETING_KINDS = ['client', 'internal', 'second_client'] as const;

@@ -192,6 +192,17 @@ registerApprovalHandler('credit_note', async (a, approve, _u, remark) => {
   await notify(a.requestedByUserId, 'credit_note_decided', approve ? 'Credit note approved' : 'Credit note rejected', remark ?? '', `/finance/leads/${a.leadId}`);
 });
 
+export async function requestCancellation(u: AuthUser, invoiceId: string, reason: string) {
+  const inv = await prisma.invoice.findUnique({ where: { id: invoiceId }, include: { payments: true } });
+  if (!inv || inv.status === 'draft' || inv.status === 'cancelled') throw conflict('BAD_STATE', 'Invoice not cancellable');
+  if (inv.payments.length) throw conflict('HAS_PAYMENTS', 'Invoice with payments needs a credit note instead');
+  return createApproval({ type: 'invoice_cancellation', entityType: 'Invoice', entityId: invoiceId, leadId: inv.leadId, requestedByUserId: u.id, payload: { reason, fullNumber: inv.fullNumber } });
+}
+registerApprovalHandler('invoice_cancellation', async (a, approve, _u, remark) => {
+  if (approve) { await prisma.invoice.update({ where: { id: a.entityId }, data: { status: 'cancelled' } }); await prisma.milestone.updateMany({ where: { invoiceId: a.entityId }, data: { status: 'pending', invoiceId: null } }); }
+  await notify(a.requestedByUserId, 'credit_note_decided', approve ? 'Invoice cancellation approved' : 'Invoice cancellation rejected', remark ?? '', `/finance/leads/${a.leadId}`);
+});
+
 export async function invoicePdfKey(id: string) { const i = await prisma.invoice.findUnique({ where: { id } }); if (!i) throw notFound('Invoice'); return i.pdfKey ?? (await renderInvoicePdf(id)); }
 export async function receiptPdfKey(id: string) { const r = await prisma.receipt.findUnique({ where: { id } }); if (!r?.pdfKey) throw notFound('Receipt'); return r.pdfKey; }
 

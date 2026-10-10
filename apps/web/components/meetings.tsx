@@ -45,7 +45,7 @@ export function MeetingList({ lead, onChanged }: { lead: any; onChanged: () => v
     {role === 'engineer' && !lead.handoverCompletedAt && <div className="mb-3 flex justify-end"><Button onClick={() => setOpen(true)}>Schedule meeting</Button></div>}
     {q.isLoading ? <Spinner /> : !q.data?.length ? <Glass><Empty text="No meetings yet" /></Glass> : <div className="space-y-2">{q.data.map((m) => <Glass key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
       <div><div className="flex items-center gap-2 text-[14px] font-medium">{m.kind.replace('_', ' ')} · {m.type}<Chip color={statusColor(m.status)}>{m.status.replace('_', ' ')}</Chip></div><div className="text-[12.5px] text-mute">{dt(m.startAt)} → {new Date(m.endAt).toLocaleTimeString([], { timeStyle: 'short' })}</div>
-        <div className="mt-1 flex gap-3 text-[12px]"><span className={m.inviteAcceptedAt ? 'text-emerald-700' : 'text-mute'}>invite {m.inviteAcceptedAt ? '✓' : '…'}</span><span className={m.consentAcceptedAt ? 'text-emerald-700' : 'text-mute'}>consent {m.consentAcceptedAt ? '✓' : '…'}</span>{m.recordings?.some((r: any) => r.status === 'ready') && <span className="text-emerald-700">recording ✓</span>}{m.mom && <span className="text-emerald-700">MoM ✓</span>}</div></div>
+        <div className="mt-1 flex gap-3 text-[12px]"><span className={m.inviteAcceptedAt ? 'text-emerald-300' : 'text-mute'}>invite {m.inviteAcceptedAt ? '✓' : '…'}</span><span className={m.consentAcceptedAt ? 'text-emerald-300' : 'text-mute'}>consent {m.consentAcceptedAt ? '✓' : '…'}</span>{m.recordings?.some((r: any) => r.status === 'ready') && <span className="text-emerald-300">recording ✓</span>}{m.mom && <span className="text-emerald-300">MoM ✓</span>}</div></div>
       <div className="flex gap-2">{role === 'engineer' && <Link href={`/engineer/meetings/${m.id}`} className="btn-primary">Open room</Link>}{(role === 'design_head' || role === 'junior_designer' || role === 'admin') && m.mom && <Link href={`/design/leads/${lead.id}?tab=meetings&mom=${m.id}`} className="btn-ghost">Minutes</Link>}</div>
     </Glass>)}</div>}
     <MeetingScheduler lead={lead} open={open} onClose={() => setOpen(false)} onChanged={refresh} />
@@ -93,7 +93,7 @@ export function MeetingRoom({ id }: { id: string }) {
   const ready = m.recordings?.some((r: any) => r.status === 'ready' && r.bytes > 0);
   const active = ['scheduled', 'rescheduled', 'in_progress'].includes(m.status);
   const startBlocked = !m.inviteAcceptedAt ? 'Client has not accepted the invite' : !m.consentAcceptedAt ? 'Recording consent pending' : m.type === 'site' && !m.checkinAt ? 'Check in at the site first' : null;
-  const Step = ({ ok, label }: { ok: boolean; label: string }) => <div className={cn('flex items-center gap-2 text-[13.5px]', ok ? 'text-emerald-700' : 'text-mute')}>{ok ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}{label}</div>;
+  const Step = ({ ok, label }: { ok: boolean; label: string }) => <div className={cn('flex items-center gap-2 text-[13.5px]', ok ? 'text-emerald-300' : 'text-mute')}>{ok ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}{label}</div>;
   return <div className="mx-auto max-w-3xl space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-2"><div><h1 className="text-[20px] font-semibold tracking-tight">{m.kind.replace('_', ' ')} meeting · {m.lead.client.name ?? m.lead.client.phone}</h1><div className="text-[13px] text-mute">{dt(m.startAt)} · {m.type}</div></div><Chip color={statusColor(m.status)}>{m.status.replace('_', ' ')}</Chip></div>
     <div className="grid gap-4 md:grid-cols-2">
@@ -109,16 +109,16 @@ export function MeetingRoom({ id }: { id: string }) {
           {m.meetLink && <a className="btn-ghost" href={m.meetLink} target="_blank" rel="noreferrer"><Video className="h-4 w-4" />Open Meet <ExternalLink className="h-3 w-3" /></a>}
           {m.status !== 'in_progress' && active && <RuleButton blocked={startBlocked} loading={busy === 'start'} onClick={() => act('start', () => post(`/meetings/${id}/start`))}>Start meeting</RuleButton>}
         </div>
-        {m.status === 'in_progress' && <div className="mt-4 rounded-xl border border-white/80 bg-white/60 p-3">
-          <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[13.5px]"><Mic className={cn('h-4 w-4', rec.recording && 'animate-pulse text-red-600')} />{rec.recording ? 'Recording' : 'Recorder'}</div><div className="font-mono text-[18px]">{String(Math.floor(rec.seconds / 60)).padStart(2, '0')}:{String(rec.seconds % 60).padStart(2, '0')}</div></div>
+        {m.status === 'in_progress' && <div className="mt-4 rounded-xl border border-white/10 bg-white/[.06] p-3">
+          <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[13.5px]"><Mic className={cn('h-4 w-4', rec.recording && 'animate-pulse text-red-300')} />{rec.recording ? 'Recording' : 'Recorder'}</div><div className="font-mono text-[18px]">{String(Math.floor(rec.seconds / 60)).padStart(2, '0')}:{String(rec.seconds % 60).padStart(2, '0')}</div></div>
           <div className="mt-2 flex gap-2">{!rec.recording ? <Button variant="ghost" onClick={rec.start} disabled={rec.uploading}><Mic className="h-4 w-4" />Record</Button> : <Button variant="danger" onClick={rec.stopAndUpload}><Square className="h-4 w-4" />Stop & upload</Button>}{rec.uploading && <span className="text-[12.5px] text-mute">Uploading chunks…</span>}</div>
           <div className="mt-2 text-[12px] text-mute">{ready ? 'A recording is ready.' : 'Mic recording is saved locally in 5 s chunks and uploaded on stop. Online Meet is also recorded by the bot.'}</div>
         </div>}
-        {active && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/70 pt-3">
+        {active && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
           <RuleButton blocked={!ready ? 'Complete requires a ready recording (mic or bot)' : m.status !== 'in_progress' ? 'Start the meeting first' : null} loading={busy === 'complete'} onClick={() => act('complete', async () => { await post(`/meetings/${id}/complete`); toast('Completed · AI minutes in progress'); })}>Complete</RuleButton>
           <Button variant="ghost" loading={busy === 'noshow'} onClick={() => act('noshow', () => post(`/meetings/${id}/no-show`))}>No-show</Button>
           <Button variant="ghost" onClick={() => { setRs({ startAt: toLocalInput(new Date(m.startAt)), endAt: toLocalInput(new Date(m.endAt)) }); setResched(true); }}>Reschedule</Button>
-          <Button variant="ghost" className="text-red-700" loading={busy === 'cancel'} onClick={() => act('cancel', () => post(`/meetings/${id}/cancel`))}>Cancel</Button>
+          <Button variant="ghost" className="text-red-300" loading={busy === 'cancel'} onClick={() => act('cancel', () => post(`/meetings/${id}/cancel`))}>Cancel</Button>
         </div>}
       </Glass>
     </div>
@@ -134,9 +134,9 @@ export function MeetingOutputs({ meetingId, m }: { meetingId: string; m: any }) 
   return <div className="space-y-4">
     <Glass><div className="mb-2 flex items-center justify-between"><div className="text-[12px] font-medium uppercase tracking-wide text-mute">Minutes of meeting</div>{mom.data?.emailedToClientAt && <Chip color="green">emailed to client</Chip>}</div>
       {mom.data ? <pre className="whitespace-pre-wrap font-sans text-[13.5px]">{mom.data.text}</pre> : <div className="text-[13px] text-mute">Generating… (AI pipeline)</div>}
-      {mom.data?.objections?.length > 0 && <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-[13px]"><div className="font-medium text-red-800">Client objections</div>{mom.data.objections.map((o: any) => <div key={o.id}>• {o.remark} <span className="text-mute">({dt(o.at)})</span></div>)}</div>}
+      {mom.data?.objections?.length > 0 && <div className="mt-3 rounded-xl border border-red-300/40 bg-red-400/10 p-3 text-[13px]"><div className="font-medium text-red-300">Client objections</div>{mom.data.objections.map((o: any) => <div key={o.id}>• {o.remark} <span className="text-mute">({dt(o.at)})</span></div>)}</div>}
     </Glass>
-    <Glass><button className="text-[12px] font-medium uppercase tracking-wide text-mute" onClick={() => setShowT(!showT)}>Transcript {showT ? '▾' : '▸'}</button>{showT && <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] text-ink/80">{t.data?.text ?? 'Not ready'}</pre>}
+    <Glass><button className="text-[12px] font-medium uppercase tracking-wide text-mute" onClick={() => setShowT(!showT)}>Transcript {showT ? '▾' : '▸'}</button>{showT && <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] text-ink/90">{t.data?.text ?? 'Not ready'}</pre>}
       <div className="mt-2 text-[12px] text-mute">Duration {m.durationSec ? Math.round(m.durationSec / 60) + ' min' : '—'} · {m.recordings?.length ?? 0} recording(s)</div></Glass>
     <NotesInline leadId={m.leadId} meetingId={meetingId} />
   </div>;

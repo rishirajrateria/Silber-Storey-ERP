@@ -10,8 +10,8 @@ export async function createApproval(input: { type: ApprovalType; entityType: st
   if (existing) throw conflict('APPROVAL_PENDING', 'An approval is already pending for this item');
   const a = await prisma.approval.create({ data: { ...input, payload: input.payload as any } });
   rt.approvals({ type: 'created', approval: a });
-  const titles: Record<string, string> = { duplicate_override: 'Duplicate override requested', quote_version: 'Quote approval requested', milestone_pct_change: 'Milestone % change requested', credit_note: 'Credit note requested', new_user: 'New user requested', meeting_invite: 'Meeting invite' };
-  const ev = ({ duplicate_override: 'duplicate_override_requested', quote_version: 'quote_approval_requested', milestone_pct_change: 'pct_change_requested', credit_note: 'credit_note_requested', new_user: 'new_user_requested', meeting_invite: 'admin_invite' } as const)[input.type as keyof typeof titles as ApprovalType];
+  const titles: Record<string, string> = { duplicate_override: 'Duplicate override requested', quote_version: 'Quote approval requested', milestone_pct_change: 'Milestone % change requested', credit_note: 'Credit note requested', invoice_cancellation: 'Invoice cancellation requested', new_user: 'New user requested', meeting_invite: 'Meeting invite' };
+  const ev = ({ duplicate_override: 'duplicate_override_requested', quote_version: 'quote_approval_requested', milestone_pct_change: 'pct_change_requested', credit_note: 'credit_note_requested', invoice_cancellation: 'credit_note_requested', new_user: 'new_user_requested', meeting_invite: 'admin_invite' } as const)[input.type];
   await notifyAdmins(ev, titles[input.type], `Requested by user ${input.requestedByUserId}`, `/admin/approvals`);
   return a;
 }

@@ -55,6 +55,8 @@ export async function createMeeting(u: AuthUser, input: { leadId: string; kind: 
   const start = new Date(input.startAt), end = new Date(input.endAt);
   if (!(end > start)) throw badRequest('End must be after start');
   if (input.kind !== 'client' && !lead.pushedToDesignAt) throw conflict('NOT_IN_HANDOVER', 'Internal / second meetings only after push to design');
+  // Second client meeting needs the design team in place (Design Head + assigned Junior) so their consent/calendars are included
+  if (input.kind === 'second_client' && !lead.handover?.juniorUserId) throw conflict('JUNIOR_NOT_ASSIGNED', 'Second client meeting requires the Design Head to assign a Junior first');
   if (input.type === 'site' && (lead.client.addressLat == null || lead.client.addressLng == null)) throw conflict('ADDRESS_MISSING', 'Site meeting needs a geocoded exact address');
   const attendees = new Set(input.attendeeUserIds ?? []);
   if (input.kind !== 'client' && lead.handover) { attendees.add(lead.handover.designHeadUserId); if (lead.handover.juniorUserId) attendees.add(lead.handover.juniorUserId); }
@@ -221,10 +223,10 @@ export async function publicInvite(token: string) {
   const branding = await getSetting<any>('branding');
   return { meeting: { id: m.id, type: m.type, startAt: m.startAt, endAt: m.endAt, meetLink: m.meetLink, inviteAcceptedAt: m.inviteAcceptedAt, officeAddress: m.type === 'office' ? await getSetting('officeAddress') : undefined }, clientName: m.lead.client.name, company: branding?.companyName, consentToken: m.consentToken };
 }
-export async function publicInviteAccept(token: string) {
+export async function publicInviteAccept(token: string, ip?: string) {
   const m = await prisma.meeting.findUnique({ where: { inviteToken: token } });
   if (!m || m.status === 'cancelled' || m.endAt < new Date()) throw notFound('Invite');
-  const upd = await prisma.meeting.update({ where: { id: m.id }, data: { inviteAcceptedAt: m.inviteAcceptedAt ?? new Date() } });
+  const upd = await prisma.meeting.update({ where: { id: m.id }, data: { inviteAcceptedAt: m.inviteAcceptedAt ?? new Date(), inviteIp: m.inviteIp ?? ip } });
   await notify(m.engineerUserId, 'invite_accepted', 'Client accepted the invite', '', `/engineer/meetings/${m.id}`);
   return { inviteAcceptedAt: upd.inviteAcceptedAt };
 }
@@ -240,13 +242,24 @@ export async function publicConsent(token: string) {
   if (!m || m.status === 'cancelled' || m.endAt < new Date()) throw notFound('Consent');
   return { meeting: { id: m.id, startAt: m.startAt, consentAcceptedAt: m.consentAcceptedAt }, clientName: m.lead.client.name, company: (await getSetting<any>('branding'))?.companyName };
 }
-export async function publicConsentAccept(token: string) {
+export async function publicConsentAccept(token: string, ip?: string) {
   const m = await prisma.meeting.findUnique({ where: { consentToken: token } });
   if (!m || m.status === 'cancelled' || m.endAt < new Date()) throw notFound('Consent');
-  const upd = await prisma.meeting.update({ where: { id: m.id }, data: { consentAcceptedAt: m.consentAcceptedAt ?? new Date() } });
+  // Consent is captured with timestamp, IP and link token (security section 9)
+  const upd = await prisma.meeting.update({ where: { id: m.id }, data: { consentAcceptedAt: m.consentAcceptedAt ?? new Date(), consentIp: m.consentIp ?? ip } });
   await notify(m.engineerUserId, 'consent_accepted', 'Client gave recording consent', '', `/engineer/meetings/${m.id}`);
   return { consentAcceptedAt: upd.consentAcceptedAt };
 }
+/** ICS for the public invite page ("add to calendar"). */
+export async function publicInviteIcs(token: string) {
+  const m = await prisma.meeting.findUnique({ where: { inviteToken: token }, include: { lead: { include: { client: true } } } });
+  if (!m || m.status === 'cancelled') throw notFound('Invite');
+  const b = await getSetting<any>('branding');
+  const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const loc = m.type === 'meet' ? m.meetLink ?? '' : m.type === 'office' ? await getSetting<string>('officeAddress') : m.lead.client.exactAddress ?? '';
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${b?.companyName ?? 'LeadApp'}//EN`, 'BEGIN:VEVENT', `UID:${m.id}@leadapp`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(m.startAt)}`, `DTEND:${f(m.endAt)}`, `SUMMARY:Meeting with ${b?.companyName ?? ''}`, `LOCATION:${String(loc).replace(/\n/g, ' ')}`, `DESCRIPTION:${m.type} meeting${m.meetLink ? ' · ' + m.meetLink : ''}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+}
+
 export async function publicMom(token: string) {
   const mom = await prisma.minutesOfMeeting.findUnique({ where: { token }, include: { meeting: { include: { lead: { include: { client: true } } } }, objections: true } });
   if (!mom) throw notFound('Minutes');

@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   officeLng: config.office.lng,
   checkinRadiusM: 200,
   branding: {
-    logo: '', colors: { primary: '#1F3A5F' }, companyName: 'Silber Storey Interiors', address: config.office.address,
+    logo: '', colors: { primary: '#5EE6FF' }, companyName: 'Silber Storey Interiors', address: config.office.address,
     gstin: '27AAAAA0000A1Z5', state: 'Maharashtra', phone: '+919999999999', email: 'hello@example.com',
   },
   inclusionsText: 'Design consultation, 3D renders, material as per package, installation and site supervision.',
@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Record<string, unknown> = {
   termsText: 'Quote valid for the stated validity period. Payments as per schedule. GST extra as applicable.',
   rateCard: DEFAULT_RATE_CARD,
   caps: {},
+  stageThresholdDays: Object.fromEntries(['lead_received','qualified_by_sales','transferred_to_engineer','first_contact','meeting_scheduled','meeting_done','quote_v1','admin_approved','quote_sent','client_accepted_final','pushed_to_finance','invoice_sent','advance_paid','pushed_to_design','internal_meeting_done','second_client_meeting_done'].map((s) => [s, 3])),
 };
 
 const cache = new Map<string, unknown>();

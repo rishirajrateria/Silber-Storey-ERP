@@ -43,5 +43,6 @@ export const sessions = {
   touch: async (s: SessionData) => { s.lastSeenAt = new Date().toISOString(); await store.set(s); },
   destroy: (sid: string) => store.del(sid),
   listByUser: (userId: string) => store.listByUser(userId),
+  async destroyAllForUser(userId: string) { for (const s of await store.listByUser(userId)) await store.del(s.sid); },
 };
 export const COOKIE = 'sid';

@@ -1,4 +1,6 @@
 import { getSetting } from '../../lib/settings.js';
+import { prisma } from '../../lib/db.js';
+import { renderTemplate } from '../../lib/template.js';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const inr = (n: number) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -6,6 +8,8 @@ const inr = (n: number) => '₹' + Number(n || 0).toLocaleString('en-IN', { maxi
 /** Branded HTML for quote / invoice / receipt / mom. Used by both mock and Playwright renderer. */
 export async function renderDocumentHtml(templateKey: string, data: Record<string, any>) {
   const b = await getSetting<any>('branding');
+  const blocks = Object.fromEntries((await prisma.template.findMany({ where: { channel: 'pdf', active: true } })).map((t) => [t.key, renderTemplate(t.body, { company: b?.companyName ?? '' })]));
+  data = { ...data, blocks };
   const watermark = data.watermark ? `<div class="wm">${esc(data.watermark)}</div>` : '';
   const body = templateKey === 'quote' ? quoteBody(data) : templateKey === 'invoice' ? invoiceBody(data) : templateKey === 'receipt' ? receiptBody(data) : preBody(data);
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(data.title ?? templateKey)}</title>
@@ -24,9 +28,10 @@ ${body}</body></html>`;
 
 function quoteBody(d: any) {
   const q = d.quote;
+  const intro = d.blocks?.quote_intro ? `<p class="muted">${esc(d.blocks.quote_intro)}</p>` : '';
   const rooms = (q.data.rooms ?? []).map((r: any) => `<h2>${esc(r.name)}</h2><table><tr><th>Item</th><th>Qty</th><th>Unit</th><th class="right">Rate</th><th class="right">Amount</th></tr>${r.items.map((i: any) => `<tr><td>${esc(i.label)}${i.rateOverridden ? ' <span class="muted">(rate overridden)</span>' : ''}</td><td>${i.qty}</td><td>${esc(i.unit)}</td><td class="right">${inr(i.rate)}</td><td class="right">${inr(i.amount)}</td></tr>`).join('')}</table>`).join('');
   const services = (q.data.services ?? []).map((s: any) => `<tr><td>${esc(s.label)}</td><td>${s.mode === 'pct' ? s.value + '%' : 'fixed'}</td><td class="right">${inr(s.amount)}</td></tr>`).join('');
-  return `<p><strong>Client:</strong> ${esc(d.clientName)} · <strong>Version:</strong> ${q.versionNo} · <strong>Valid for:</strong> ${q.validityDays} days</p>
+  return `${intro}<p><strong>Client:</strong> ${esc(d.clientName)} · <strong>Version:</strong> ${q.versionNo} · <strong>Valid for:</strong> ${q.validityDays} days</p>
 <p>${esc(q.data.propertyType)} · ${q.data.carpetAreaSqft} sqft · ${esc(q.data.locality)} · ${esc(q.data.package)} package · ${esc(q.data.projectType)}</p>
 <table><tr><td>Base (${q.data.carpetAreaSqft} sqft × package rate)</td><td class="right">${inr(d.totals.base)}</td></tr></table>
 ${rooms}
@@ -45,9 +50,9 @@ function invoiceBody(d: any) {
 <table><tr><th>Description</th><th>HSN/SAC</th><th class="right">Amount</th></tr>${inv.lines.map((l: any) => `<tr><td>${esc(l.description)}</td><td>${esc(inv.hsnSac)}</td><td class="right">${inr(l.amount)}</td></tr>`).join('')}
 <tr><td colspan="2" class="right">Subtotal</td><td class="right">${inr(inv.subtotal)}</td></tr>
 ${inv.igst ? `<tr><td colspan="2" class="right">IGST ${inv.gstPct}%</td><td class="right">${inr(inv.igst)}</td></tr>` : `<tr><td colspan="2" class="right">CGST ${inv.gstPct / 2}%</td><td class="right">${inr(inv.cgst)}</td></tr><tr><td colspan="2" class="right">SGST ${inv.gstPct / 2}%</td><td class="right">${inr(inv.sgst)}</td></tr>`}
-<tr><th colspan="2" class="right">Total</th><th class="right">${inr(inv.total)}</th></tr></table><p class="muted">Place of supply: ${esc(inv.placeOfSupplyState)}</p>`;
+<tr><th colspan="2" class="right">Total</th><th class="right">${inr(inv.total)}</th></tr></table><p class="muted">Place of supply: ${esc(inv.placeOfSupplyState)}</p>${d.blocks?.invoice_footer ? `<p class="muted">${esc(d.blocks.invoice_footer)}</p>` : ''}`;
 }
 function receiptBody(d: any) {
-  return `<p>Received with thanks from <strong>${esc(d.clientName)}</strong> the sum of <strong>${inr(d.amount)}</strong> by ${esc(d.mode)} ${d.reference ? '(' + esc(d.reference) + ')' : ''} on ${esc(d.paidOn)} against invoice ${esc(d.invoiceNumber)}.</p>`;
+  return `<p>Received with thanks from <strong>${esc(d.clientName)}</strong> the sum of <strong>${inr(d.amount)}</strong> by ${esc(d.mode)} ${d.reference ? '(' + esc(d.reference) + ')' : ''} on ${esc(d.paidOn)} against invoice ${esc(d.invoiceNumber)}.</p>${d.blocks?.receipt_footer ? `<p class="muted">${esc(d.blocks.receipt_footer)}</p>` : ''}`;
 }
 function preBody(d: any) { return `<pre>${esc(d.text)}</pre>`; }

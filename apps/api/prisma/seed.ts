@@ -49,6 +49,8 @@ t('invoice_link', 'Invoice {{invoice_number}} · {{company}}', { email: 'Hi {{cl
 t('invoice_pdf', 'Invoice {{invoice_number}}', { whatsapp: 'Invoice {{invoice_number}} for ₹{{amount}} from {{company}}. {{invoice_link}}' }, ['invoice_number', 'amount', 'company', 'invoice_link']);
 t('receipt_thankyou', 'Payment received · {{company}}', { email: 'Hi {{client_name}},\n\nThank you! We received ₹{{amount}} against {{invoice_number}}. Receipt: {{receipt_link}}\n\n{{company}}', whatsapp: 'Thank you {{client_name}}! ₹{{amount}} received. Receipt: {{receipt_link}}', sms: '{{company}}: ₹{{amount}} received. Receipt {{receipt_link}}' }, ['client_name', 'company', 'amount', 'invoice_number', 'receipt_link']);
 
+const PDF_BLOCKS: Array<[string, string, string]> = [['quote_intro', 'Quote intro', 'Thank you for considering {{company}} for your interiors. This is an indicative quotation; a detailed BOQ follows after design sign-off.'], ['invoice_footer', 'Invoice footer', 'Payment within 7 days by UPI/NEFT to the account on this invoice. Subject to Mumbai jurisdiction.'], ['receipt_footer', 'Receipt footer', 'This is a computer-generated receipt from {{company}}.']];
+
 async function main() {
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) await prisma.setting.upsert({ where: { key }, create: { key, value: value as any }, update: {} });
   for (const s of SALES_STATUSES) await prisma.leadStatus.upsert({ where: { dashboard_key: { dashboard: 'sales', key: s.key } }, create: { dashboard: 'sales', ...s }, update: { label: s.label, order: s.order } });
@@ -56,6 +58,7 @@ async function main() {
   for (let i = 0; i < SOURCES.length; i++) await prisma.leadSource.upsert({ where: { label: SOURCES[i] }, create: { label: SOURCES[i], order: i + 1 }, update: {} });
   for (const r of DELAY_RULES) await prisma.delayRule.upsert({ where: { dashboard_ruleKey: { dashboard: r.dashboard, ruleKey: r.ruleKey } }, create: r, update: {} });
   for (const d of ['admin', 'sales', 'engineer', 'finance', 'design_head', 'junior_designer']) for (const e of NOTIFICATION_EVENTS) await prisma.notificationRule.upsert({ where: { dashboard_eventKey: { dashboard: d, eventKey: e } }, create: { dashboard: d, eventKey: e, inApp: true, email: ['digest', 'delay_breached', 'invoice_paid'].includes(e), timingOffsetsMin: e === 'meeting_reminder' ? [1440, 60] : [] }, update: {} });
+  for (const [key, name, body] of PDF_BLOCKS) await prisma.template.upsert({ where: { channel_key: { channel: 'pdf', key } }, create: { channel: 'pdf', key, name, body, variables: ['company'] }, update: {} });
   for (const tp of TEMPLATES) await prisma.template.upsert({ where: { channel_key: { channel: tp.channel, key: tp.key } }, create: { ...tp, providerStatus: tp.channel === 'whatsapp' ? 'approved' : null }, update: {} });
 
   const users = [
